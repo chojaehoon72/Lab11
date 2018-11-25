@@ -1,0 +1,92 @@
+---
+title: "Activity 11"
+author: "Jae Hoon Cho"
+date: "November 22, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Activity - Lab 11
+1. Write a function that generates numbers from binomial(n, p) distribution using runif() function. Hint: binomial(n, p) random variable can be defined as a sum of n independent Bernoulli(p) random variables. 
+
+```{r}
+rbinom_new <- function (x,n,p) {
+  result <- c(NULL)
+  for (i in (1:x)) {
+    result[i] <- sum (runif(n, min=0, max=1) < p)
+  } 
+  return (result)
+}
+
+# comparing means of two methods to confirm the result
+mean(rbinom (10000,5,0.3))
+mean(rbinom_new (10000,5,0.3))
+```
+
+2. Compare performance of your function with rbinom() using microbenchmark() function.
+
+```{r}
+library (microbenchmark)
+microbenchmark(rbinom (10000,5,0.3))
+microbenchmark(rbinom_new (10000,5,0.3))
+```
+
+3. Suppose we want to simulate data from a linear regression model:
+Yi = 0 + 1 × Xi + i i = 1, ...,N where   N(0, 3) and X is a covariate that ranges between 20 and 40. Let 0 = 15 and 1 = 0.4 are known coefficients. Generate data (N = 50) from this models with given coefficients. Fit a linear regression model and plot fitted values vs residuals using ggplot() function. Please do not forget to use set.seed() function for reproducibility.
+
+```{r}
+# X <- runif (50, min=20, max=40)
+# Y = 15 + 0.4*X + rnorm(1,0,3) 
+
+library(tidyverse)
+
+set.seed(50)
+x_var <- runif (50, min = 20, max = 40)
+
+set.seed(50)
+y_var <- 15 + 0.4*x_var + rnorm(1, 0, 3)
+
+xy_var <- data.frame(x_var, y_var)
+summary(lm(y_var ~ x_var, data=xy_var))
+
+plot(xy_var$x_var, xy_var$y_var)
+
+lm_xy <- lm(y_var ~ x_var, data=xy_var)
+modf_xy <- fortify(lm_xy)
+ggplot(modf_xy, aes(x = .fitted, y = .resid)) + geom_point()
+```
+
+
+4. Box-Muller algorithm: generate U1 and U2 two independent uniform(0, 1) random variables and set: R = p−2 log(U1) and  = 2U2 then X = Rcos() and Y = Rsin() are two independent normal variables. Write a function that generates normal variates using Box-Muller algorithm. Compare simulated data from your function with simulated data from rnorm() function using ggplot() (histogram?).
+
+```{r}
+u1 <- runif(100000, min = 0, max = 1)
+u2 <- runif(100000, min = 0, max = 1)
+
+var_R <- sqrt(-2 * log(u1))
+var_theta <- 2 * pi * u2
+
+# rnorm: model 1 
+rnorm_manu1 <- function(x, mean = 0, sd = 1) {
+  ran_num <- runif(x, min = 0, max = 1)
+  var_R <- sqrt(-2 * log(ran_num))
+  var_theta <- 2 * pi * u2
+  return ((var_R * cos(var_theta)) * sd + mean)
+}
+
+# rnorm: model 2
+rnorm_manu2 <- function (x, mean = 0, sd = 1) {
+  ran_num <- runif(x, min = 0, max = 1)
+  var_R <- sqrt(-2 * log(ran_num))
+  var_theta <- 2 * pi * u2
+  return ((var_R * sin(var_theta)) * sd + mean)
+}
+
+par(mfrow = c(2,2))
+hist(rnorm_manu1 (100000, mean = 4, sd = 2), breaks = 100, main = "model 1")
+hist(rnorm_manu2 (100000, mean = 4, sd = 2), breaks = 100, main = "model 2")
+hist(rnorm(100000, mean = 4, sd = 2), breaks = 100, main = "rnorm")
+```
